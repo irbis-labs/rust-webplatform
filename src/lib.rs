@@ -189,6 +189,12 @@ impl<'a> HtmlNode<'a> {
         \0" };
     }
 
+    pub fn class_toggle(&self, s: &str) {
+        js! { (self.id, s) b"\
+            WEBPLATFORM.rs_refs[$0].classList.toggle(UTF8ToString($1));\
+        \0" };
+    }
+
     pub fn class_remove(&self, s: &str) {
         js! { (self.id, s) b"\
             WEBPLATFORM.rs_refs[$0].classList.remove(UTF8ToString($1));\
