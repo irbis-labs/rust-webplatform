@@ -499,7 +499,6 @@ pub const LocalStorage: LocalStorageInterface = LocalStorageInterface;
 
 pub fn init<'a>() -> Document<'a> {
     js! { b"\
-        console.log('hi');\
         window.WEBPLATFORM || (window.WEBPLATFORM = {\
             rs_refs: [],\
         });\
