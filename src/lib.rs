@@ -25,6 +25,7 @@ pub(crate) mod internal_prelude {
     pub(crate) use std::mem;
     pub(crate) use std::ops::Deref;
     pub(crate) use std::rc::Rc;
+    pub(crate) use std::slice;
     pub(crate) use std::str;
 
     pub(crate) use libc;

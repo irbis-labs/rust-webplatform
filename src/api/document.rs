@@ -9,14 +9,37 @@ pub fn init<'a>() -> Document<'a> {
     \0" };
     Document {
         refs: Rc::new(RefCell::new(Vec::new())),
+        refs_v: Rc::new(RefCell::new(Vec::new())),
+        refs_v_u8array: Rc::new(RefCell::new(Vec::new())),
+        refs_v_string: Rc::new(RefCell::new(Vec::new())),
     }
 }
 
 pub struct Document<'a> {
     refs: Rc<RefCell<Vec<Box<FnMut(Event<'a>) + 'a>>>>,
+    refs_v: Rc<RefCell<Vec<Box<FnMut() + 'a>>>>,
+    refs_v_u8array: Rc<RefCell<Vec<Box<FnMut(&[u8]) + 'a>>>>,
+    refs_v_string: Rc<RefCell<Vec<Box<FnMut(String) + 'a>>>>,
 }
 
 impl<'a> Document<'a> {
+    pub fn websocket_create<'b>(&'b self, url: &str) -> Option<WebSocket<'a>> {
+        let id = js! { (url) b"\
+            var value = new WebSocket(UTF8ToString($0));\
+            if (!value) {\
+                return -1;\
+            }\
+            value.binaryType = 'arraybuffer';\
+            return WEBPLATFORM.rs_refs.push(value) - 1;\
+        \0" };
+
+        if id < 0 {
+            None
+        } else {
+            Some(WebSocket::new (id, &*self))
+        }
+    }
+
     pub fn element_create<'b>(&'b self, s: &str) -> Option<HtmlNode<'a>> {
         let id = js! { (s) b"\
             var value = document.createElement(UTF8ToString($0));\
@@ -44,6 +67,18 @@ impl<'a> Document<'a> {
 
     pub fn push_ref(&self, value: Box<FnMut(Event<'a>) + 'a>) {
         self.refs.borrow_mut().push(value);
+    }
+
+    pub fn push_ref_v(&self, value: Box<FnMut() + 'a>) {
+        self.refs_v.borrow_mut().push(value);
+    }
+
+    pub fn push_ref_v_string(&self, value: Box<FnMut(String) + 'a>) {
+        self.refs_v_string.borrow_mut().push(value);
+    }
+
+    pub fn push_ref_v_u8array(&self, value: Box<FnMut(&[u8]) + 'a>) {
+        self.refs_v_u8array.borrow_mut().push(value);
     }
 
     pub fn on<F: FnMut(Event) + 'a>(&self, s: &str, f: F) {
