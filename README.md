@@ -1,8 +1,6 @@
 # rust-webplatform
 
-A Rust library for use with emscripten to access the DOM.
-
-**NOTE: Looking for maintainers. Please ping me on Twitter @trimryan or in the issues section to volunteer!**
+A Rust library for use with emscripten to access the DOM and API.
 
 [Read the documentation](https://docs.rs/crate/webplatform), read [brson's post on how
 Rust works with emscripten](https://users.rust-lang.org/t/compiling-to-the-web-with-rust-and-emscripten/7627),
@@ -20,8 +18,19 @@ fn main() {
 }
 ```
 
-Used with `cargo build --target=asmjs-unknown-emscripten`.
+Used with `cargo build --target=asmjs-unknown-emscripten` or `cargo build --target=wasm32-unknown-emscripten`.
+
 
 ## License
 
-MIT or Apache-2.0, at your option.
+Licensed under either of
+ * Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
+ * MIT license ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
+at your option.
+
+
+### Contribution
+
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in the work by you, as defined in the Apache-2.0 license,
+shall be dual licensed as above, without any additional terms or conditions.

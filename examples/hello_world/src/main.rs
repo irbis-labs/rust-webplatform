@@ -1,5 +1,5 @@
-#[macro_use] extern crate webplatform;
-extern crate libc;
+extern crate webplatform;
+
 
 fn main() {
     let document = webplatform::init();
@@ -18,7 +18,7 @@ fn main() {
         let bodyref2 = body.root_ref();
         button.on("click", move |_| {
             bodyref2.prop_set_str("bgColor", "blue");
-            println!("This should be string 'blue': {:?}", bodyref2.prop_get_str("bgColor"));
+            println!(r#"This should be string "blue": {:?}"#, bodyref2.prop_get_str("bgColor"));
         });
 
         println!("This should be empty string: {:?}", bodyref.prop_get_str("bgColor"));
@@ -27,5 +27,5 @@ fn main() {
         webplatform::spin();
     }
 
-    println!("NO CALLING ME.");
+    unreachable!();
 }

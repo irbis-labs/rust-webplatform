@@ -1,15 +1,21 @@
 [package]
-
 name = "webplatform"
-version = "0.4.2"
+version = "0.5.0"
 license = "MIT/Apache-2.0"
-description = "APIs for the web platform for cross-compiled Rust to JS."
-authors = ["Tim Cameron Ryan <tim@timryan.org>"]
+description = "APIs for the web platform for cross-compiled Rust to JS/WAsm."
+authors = [
+    "Tim Cameron Ryan <tim@timryan.org>",
+    "Alexander Irbis <irbis.labs@gmail.com>",
+]
 repository = "https://github.com/tcr/rust-webplatform"
 homepage = "https://github.com/tcr/rust-webplatform"
 
-[[bin]]
-name = "webplatform-test"
+
+[workspace]
+members = [
+    "examples/hello_world"
+]
+
 
 [lib]
 name = "webplatform"
