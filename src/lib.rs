@@ -33,7 +33,6 @@ pub(crate) mod internal_prelude {
     pub(crate) use api::*;
     pub(crate) use event::*;
     pub(crate) use html_node::*;
-    pub(crate) use interop::*;
 }
 
 extern "C" {
@@ -63,4 +62,22 @@ pub extern "C" fn syscall(a: i32) -> i32 {
         return 55
     }
     return -1
+}
+
+pub fn check_last_js_exception() {
+    use std::ffi::CStr;
+    use std::str;
+
+    let a = js! { b"\
+                    var exc = WEBPLATFORM.last_exc;\
+                    WEBPLATFORM.last_exc = null;\
+                    var str = exc == null ? \"\" : exc.toString();\
+                    return allocate(intArrayFromString(str), 'i8', ALLOC_STACK);\
+                \0" };
+    unsafe {
+        let error = str::from_utf8(CStr::from_ptr(a as *const libc::c_char).to_bytes()).unwrap().to_owned();
+        if !error.is_empty() {
+            panic!(error)
+        }
+    }
 }
