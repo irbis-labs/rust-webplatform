@@ -18,3 +18,19 @@ macro_rules! js {
         }
     };
 }
+
+#[cfg(test)]
+mod tests {
+
+    #[test]
+    fn test_js_simple() {
+        let a = js! { b"return 0;\0" };
+        assert_eq!(a, 0);
+    }
+
+    #[test]
+    fn test_js_value() {
+        let a = js! { (42) b"return $0;\0" };
+        assert_eq!(a, 42);
+    }
+}

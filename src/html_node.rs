@@ -262,3 +262,210 @@ impl<'a> HtmlNode<'a> {
         \0" };
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn with_html(html: &str, action: fn(&Document)) {
+        let document = init();
+        let body = document.element_query("body").unwrap();
+        let elem = document.element_create("div").unwrap();
+        elem.html_append(html);
+        body.append(&elem);
+        action(&document);
+        elem.remove_self();
+    }
+
+    #[test]
+    fn test_body_exists() {
+        let document = init();
+        assert!(document.element_query("body").is_some());
+    }
+
+    #[test]
+    fn test_query() {
+        with_html(
+            r#"<div class="my_class"></div>"#,
+            |doc| {
+                assert!(doc.element_query(".my_class").is_some());
+            }
+        )
+    }
+
+    #[test]
+    fn test_tagname() {
+        with_html(
+            r#"<div class="my_class"></div>"#,
+            |doc| {
+                assert_eq!(doc.element_query(".my_class").unwrap().tagname(), "div");
+            }
+        )
+    }
+
+    #[test]
+    fn test_focus() {
+        // TODO needs is_focused
+    }
+
+    #[test]
+    fn test_html_set_get() {
+        with_html(
+            r#"<div class="my_class"></div>"#,
+            |doc| {
+                let elem = doc.element_query(".my_class").unwrap();
+                elem.html_set("123");
+                assert_eq!(elem.html_get(), "123");
+            }
+        )
+    }
+
+    #[test]
+    fn test_class_get() {
+        use std::iter::FromIterator;
+
+        with_html(
+            r#"<div class="my_class my_class2"></div>"#,
+            |doc| {
+                let expect = ["my_class", "my_class2"];
+                let found = doc.element_query(".my_class").unwrap().class_get();
+                assert_eq!(found, HashSet::from_iter(expect.iter().map(|it| it.to_string())));
+            }
+        )
+    }
+
+    #[test]
+    fn test_class_add() {
+        with_html(
+            r#"<div class="my_class"></div>"#,
+            |doc| {
+                doc.element_query(".my_class").unwrap().class_add("added_class");
+                assert!(doc.element_query(".added_class").is_some());
+            }
+        )
+    }
+
+    #[test]
+    fn test_class_toggle() {
+        with_html(
+            r#"<div class="my_class"></div>"#,
+            |doc| {
+                let elem = doc.element_query(".my_class").unwrap();
+                elem.class_toggle("my_class");
+                assert!(doc.element_query(".my_class").is_none());
+                elem.class_toggle("my_class");
+                assert!(doc.element_query(".my_class").is_some());
+            }
+        )
+    }
+
+    #[test]
+    fn test_class_remove() {
+        with_html(
+            r#"<div class="my_class"></div>"#,
+            |doc| {
+                doc.element_query(".my_class").unwrap().class_remove("my_class");
+                assert!(doc.element_query(".my_class").is_none());
+            }
+        )
+    }
+
+    #[test]
+    fn test_parent() {
+        with_html(
+            r#"<div class="parent"><div class="child"></div></div>"#,
+            |doc| {
+                let child = doc.element_query(".child").unwrap();
+                let parent_class = child.parent().unwrap().class_get().into_iter().next().unwrap();
+                assert_eq!(parent_class, "parent");
+            }
+        )
+    }
+
+    #[test]
+    fn test_data_set_get() {
+        with_html(
+            r#"<div class="my_class"></div>"#,
+            |doc| {
+                let elem = doc.element_query(".my_class").unwrap();
+                elem.data_set("key", "value");
+                assert_eq!(elem.data_get("key"), Some("value".to_string()));
+            }
+        )
+    }
+
+    #[test]
+    fn test_style_set_get() {
+        with_html(
+            r#"<div class="my_class"></div>"#,
+            |doc| {
+                let elem = doc.element_query(".my_class").unwrap();
+                elem.style_set_str("color", "red");
+                assert_eq!(elem.style_get_str("color"), "red".to_string()   );
+            }
+        )
+    }
+
+    #[test]
+    fn test_prop_set_get() {
+        with_html(
+            r#"<div class="my_class"></div>"#,
+            |doc| {
+                let elem = doc.element_query(".my_class").unwrap();
+                elem.prop_set_str("id", "value");
+                assert_eq!(elem.prop_get_str("id"), "value".to_string()   );
+            }
+        )
+    }
+
+    #[test]
+    fn test_append() {
+        with_html(
+            r#"<div class="my_class"></div>"#,
+            |doc| {
+                let elem1 = doc.element_query(".my_class").unwrap();
+                let elem2 = doc.element_create("div").unwrap();
+                elem1.append(&elem2);
+                let parent_class = elem2.parent().unwrap().class_get().into_iter().next().unwrap();
+                assert_eq!(parent_class, "my_class");
+            }
+        )
+    }
+
+    #[test]
+    fn test_remove_self() {
+        with_html(
+            r#"<div class="my_class"></div>"#,
+            |doc| {
+                doc.element_query(".my_class").unwrap().remove_self();
+                assert!(doc.element_query(".my_class").is_none());
+            }
+        )
+    }
+
+    #[test]
+    fn test_html_append() {
+        with_html(
+            r#"<div class="my_class">aaa</div>"#,
+            |doc| {
+                let elem = doc.element_query(".my_class").unwrap();
+                elem.html_append("bbb");
+                assert_eq!(elem.html_get(), "aaabbb");
+            }
+        )
+    }
+
+    #[test]
+    fn test_html_prepend() {
+        with_html(
+            r#"<div class="my_class">aaa</div>"#,
+            |doc| {
+                let elem = doc.element_query(".my_class").unwrap();
+                elem.html_prepend("bbb");
+                assert_eq!(elem.html_get(), "bbbaaa");
+            }
+        )
+    }
+
+    // TODO test evens
+}
