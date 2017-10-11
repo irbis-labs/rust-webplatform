@@ -6,6 +6,9 @@ A Rust library for use with emscripten to access the DOM and API.
 Rust works with emscripten](https://users.rust-lang.org/t/compiling-to-the-web-with-rust-and-emscripten/7627),
 or see an example app with [rust-todomvc](http://github.com/tcr/rust-todomvc).
 
+
+## Example
+
 ```rust
 extern crate webplatform;
 
@@ -19,6 +22,35 @@ fn main() {
 ```
 
 Used with `cargo build --target=asmjs-unknown-emscripten` or `cargo build --target=wasm32-unknown-emscripten`.
+
+
+## Roadmap
+
+### v 0.5. Establish a development process
+
+* [ ] CI
+* [ ] Tests
+* [ ] Split Document and Window
+* [ ] Extract event manager
+* [ ] Make intuitive method names similar to the original ones in JS
+
+### v 0.6. Support Essential Event Types
+
+* [ ] FocusEvent
+* [ ] KeyboardEvent
+* [ ] MouseEvent
+* [ ] UiEvent
+* [ ] WheelEvent
+ 
+### v 0.7. More APIs 
+
+* [ ] File
+* [ ] WebSocket
+* [ ] XmlHttpRequest
+
+### v 0.x. Keep doing good
+
+* [ ] Fix memory leaks
 
 
 ## License
