@@ -2,11 +2,11 @@ use internal_prelude::*;
 
 
 pub fn init<'a>() -> Document<'a> {
-    js! { b"\
+    js_guarded! { "\
         window.WEBPLATFORM || (window.WEBPLATFORM = {\
             rs_refs: [],\
         });\
-    \0" };
+    " };
     Document {
         refs: Rc::new(RefCell::new(Vec::new())),
         refs_v: Rc::new(RefCell::new(Vec::new())),
@@ -24,14 +24,14 @@ pub struct Document<'a> {
 
 impl<'a> Document<'a> {
     pub fn websocket_create<'b>(&'b self, url: &str) -> Option<WebSocket<'a>> {
-        let id = js! { (url) b"\
+        let id = js_guarded! { (url) "\
             var value = new WebSocket(UTF8ToString($0));\
             if (!value) {\
                 return -1;\
             }\
             value.binaryType = 'arraybuffer';\
             return WEBPLATFORM.rs_refs.push(value) - 1;\
-        \0" };
+        " };
 
         if id < 0 {
             None
@@ -41,13 +41,13 @@ impl<'a> Document<'a> {
     }
 
     pub fn element_create<'b>(&'b self, s: &str) -> Option<HtmlNode<'a>> {
-        let id = js! { (s) b"\
+        let id = js_guarded! { (s) "\
             var value = document.createElement(UTF8ToString($0));\
             if (!value) {\
                 return -1;\
             }\
             return WEBPLATFORM.rs_refs.push(value) - 1;\
-        \0" };
+        " };
 
         if id < 0 {
             None
@@ -57,9 +57,9 @@ impl<'a> Document<'a> {
     }
 
     pub fn location_hash_get(&self) -> String {
-        let a = js! { b"\
+        let a = js_guarded! { "\
             return allocate(intArrayFromString(window.location.hash), 'i8', ALLOC_STACK);\
-        \0" };
+        " };
         unsafe {
             str::from_utf8(CStr::from_ptr(a as *const libc::c_char).to_bytes()).unwrap().to_owned()
         }
@@ -85,26 +85,26 @@ impl<'a> Document<'a> {
         unsafe {
             let b = Box::new(f);
             let a = &*b as *const _;
-            js! { (0, s, a as *const libc::c_void,
+            js_guarded! { (0, s, a as *const libc::c_void,
                 rust_caller::<F> as *const libc::c_void,
                 &*self as *const _ as *const libc::c_void)
-                b"\
+                "\
                 window.addEventListener(UTF8ToString($1), function (e) {\
                     Runtime.dynCall('viii', $3, [$2, $4, e.target ? WEBPLATFORM.rs_refs.push(e.target) - 1 : -1]);\
                 }, false);\
-            \0" };
+            " };
             self.refs.borrow_mut().push(b);
         }
     }
 
     pub fn element_query<'b>(&'b self, s: &str) -> Option<HtmlNode<'a>> {
-        let id = js! { (s) b"\
+        let id = js_guarded! { (s) "\
             var value = document.querySelector(UTF8ToString($0));\
             if (!value) {\
                 return -1;\
             }\
             return WEBPLATFORM.rs_refs.push(value) - 1;\
-        \0" };
+        " };
 
         if id < 0 {
             None

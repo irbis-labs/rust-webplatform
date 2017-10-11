@@ -8,7 +8,7 @@ pub use self::websocket::*;
 
 
 pub fn alert(s: &str) {
-    js! { (s) b"\
+    js_guarded! { (s) "\
         alert(UTF8ToString($0));\
-    \0" };
+    " };
 }

@@ -64,40 +64,40 @@ impl<'a> HtmlNode<'a> {
 
 impl<'a> HtmlNode<'a> {
     pub fn tagname(&self) -> String {
-        let a = js! { (self.id) b"\
+        let a = js_guarded! { (self.id) "\
             var str = WEBPLATFORM.rs_refs[$0].tagName.toLowerCase();\
             return allocate(intArrayFromString(str), 'i8', ALLOC_STACK);\
-        \0" };
+        " };
         unsafe {
             str::from_utf8(CStr::from_ptr(a as *const libc::c_char).to_bytes()).unwrap().to_owned()
         }
     }
 
     pub fn focus(&self) {
-        js! { (self.id) b"\
+        js_guarded! { (self.id) "\
             WEBPLATFORM.rs_refs[$0].focus();\
-        \0" };
+        " };
     }
 
     pub fn html_set(&self, s: &str) {
-        js! { (self.id, s) b"\
+        js_guarded! { (self.id, s) "\
             WEBPLATFORM.rs_refs[$0].innerHTML = UTF8ToString($1);\
-        \0" };
+        " };
     }
 
     pub fn html_get(&self) -> String {
-        let a = js! { (self.id) b"\
+        let a = js_guarded! { (self.id) "\
             return allocate(intArrayFromString(WEBPLATFORM.rs_refs[$0].innerHTML), 'i8', ALLOC_STACK);\
-        \0" };
+        " };
         unsafe {
             str::from_utf8(CStr::from_ptr(a as *const libc::c_char).to_bytes()).unwrap().to_owned()
         }
     }
 
     pub fn class_get(&self) -> HashSet<String> {
-        let a = js! { (self.id) b"\
+        let a = js_guarded! { (self.id) "\
             return allocate(intArrayFromString(WEBPLATFORM.rs_refs[$0].className), 'i8', ALLOC_STACK);\
-        \0" };
+        " };
         let class = unsafe {
             str::from_utf8(CStr::from_ptr(a as *const libc::c_char).to_bytes()).unwrap().to_owned()
         };
@@ -105,31 +105,31 @@ impl<'a> HtmlNode<'a> {
     }
 
     pub fn class_add(&self, s: &str) {
-        js! { (self.id, s) b"\
+        js_guarded! { (self.id, s) "\
             WEBPLATFORM.rs_refs[$0].classList.add(UTF8ToString($1));\
-        \0" };
+        " };
     }
 
     pub fn class_toggle(&self, s: &str) {
-        js! { (self.id, s) b"\
+        js_guarded! { (self.id, s) "\
             WEBPLATFORM.rs_refs[$0].classList.toggle(UTF8ToString($1));\
-        \0" };
+        " };
     }
 
     pub fn class_remove(&self, s: &str) {
-        js! { (self.id, s) b"\
+        js_guarded! { (self.id, s) "\
             WEBPLATFORM.rs_refs[$0].classList.remove(UTF8ToString($1));\
-        \0" };
+        " };
     }
 
     pub fn parent(&self) -> Option<HtmlNode<'a>> {
-        let id = js! { (self.id) b"\
+        let id = js_guarded! { (self.id) "\
             var value = WEBPLATFORM.rs_refs[$0].parentNode;\
             if (!value) {\
                 return -1;\
             }\
             return WEBPLATFORM.rs_refs.push(value) - 1;\
-        \0" };
+        " };
         if id < 0 {
             None
         } else {
@@ -141,17 +141,17 @@ impl<'a> HtmlNode<'a> {
     }
 
     pub fn data_set(&self, s: &str, v: &str) {
-        js! { (self.id, s, v) b"\
+        js_guarded! { (self.id, s, v) "\
             WEBPLATFORM.rs_refs[$0].dataset[UTF8ToString($1)] = UTF8ToString($2);\
-        \0" };
+        " };
     }
 
     pub fn data_get(&self, s: &str) -> Option<String> {
-        let a = js! { (self.id, s) b"\
+        let a = js_guarded! { (self.id, s) "\
             var str = WEBPLATFORM.rs_refs[$0].dataset[UTF8ToString($1)];\
             if (str == null) return -1;\
             return allocate(intArrayFromString(str), 'i8', ALLOC_STACK);\
-        \0" };
+        " };
         if a == -1 {
             None
         } else {
@@ -162,77 +162,77 @@ impl<'a> HtmlNode<'a> {
     }
 
     pub fn style_set_str(&self, s: &str, v: &str) {
-        js! { (self.id, s, v) b"\
+        js_guarded! { (self.id, s, v) "\
             WEBPLATFORM.rs_refs[$0].style[UTF8ToString($1)] = UTF8ToString($2);\
-        \0" };
+        " };
     }
 
     pub fn style_get_str(&self, s: &str) -> String {
-        let a = js! { (self.id, s) b"\
+        let a = js_guarded! { (self.id, s) "\
             return allocate(intArrayFromString(WEBPLATFORM.rs_refs[$0].style[UTF8ToString($1)]), 'i8', ALLOC_STACK);\
-        \0" };
+        " };
         unsafe {
             str::from_utf8(CStr::from_ptr(a as *const libc::c_char).to_bytes()).unwrap().to_owned()
         }
     }
 
     pub fn prop_set_i32(&self, s: &str, v: i32) {
-        js! { (self.id, s, v) b"\
+        js_guarded! { (self.id, s, v) "\
             WEBPLATFORM.rs_refs[$0][UTF8ToString($1)] = $2;\
-        \0" };
+        " };
     }
 
     pub fn prop_set_str(&self, s: &str, v: &str) {
-        js! { (self.id, s, v) b"\
+        js_guarded! { (self.id, s, v) "\
             WEBPLATFORM.rs_refs[$0][UTF8ToString($1)] = UTF8ToString($2);\
-        \0" };
+        " };
     }
 
     pub fn prop_get_i32(&self, s: &str) -> i32 {
-        return js! { (self.id, s) b"\
+        return js_guarded! { (self.id, s) "\
             return Number(WEBPLATFORM.rs_refs[$0][UTF8ToString($1)])\
-        \0" };
+        " };
     }
 
     pub fn prop_get_str(&self, s: &str) -> String {
-        let a = js! { (self.id, s) b"\
-            var a = allocate(intArrayFromString(WEBPLATFORM.rs_refs[$0][UTF8ToString($1)]), 'i8', ALLOC_STACK); console.log(WEBPLATFORM.rs_refs[$0]); return a;\
-        \0" };
+        let a = js_guarded! { (self.id, s) "\
+            return allocate(intArrayFromString(WEBPLATFORM.rs_refs[$0][UTF8ToString($1)]), 'i8', ALLOC_STACK);\
+        " };
         unsafe {
             str::from_utf8(CStr::from_ptr(a as *const libc::c_char).to_bytes()).unwrap().to_owned()
         }
     }
 
     pub fn append(&self, s: &HtmlNode) {
-        js! { (self.id, s.id) b"\
+        js_guarded! { (self.id, s.id) "\
             WEBPLATFORM.rs_refs[$0].appendChild(WEBPLATFORM.rs_refs[$1]);\
-        \0" };
+        " };
     }
 
     pub fn html_append(&self, s: &str) {
-        js! { (self.id, s) b"\
+        js_guarded! { (self.id, s) "\
             WEBPLATFORM.rs_refs[$0].insertAdjacentHTML('beforeEnd', UTF8ToString($1));\
-        \0" };
+        " };
     }
 
     pub fn html_prepend(&self, s: &str) {
-        js! { (self.id, s) b"\
+        js_guarded! { (self.id, s) "\
             WEBPLATFORM.rs_refs[$0].insertAdjacentHTML('afterBegin', UTF8ToString($1));\
-        \0" };
+        " };
     }
 
     pub fn on<F: FnMut(Event) + 'a>(&self, s: &str, f: F) {
         unsafe {
             let b = Box::new(f);
             let a = &*b as *const _;
-            js! { (self.id, s, a as *const libc::c_void,
+            js_guarded! { (self.id, s, a as *const libc::c_void,
                 rust_caller::<F> as *const libc::c_void,
                 self.doc as *const libc::c_void)
-                b"\
+                "\
                 WEBPLATFORM.rs_refs[$0].addEventListener(UTF8ToString($1), function (e) {\
                     Runtime.dynCall('viii', $3, [$2, $4, e.target ? WEBPLATFORM.rs_refs.push(e.target) - 1 : -1]);\
                 }, false);\
-            \0" };
+            " };
             (&*self.doc).push_ref(b);
 //            (&*self.doc).refs.borrow_mut().push(b);
         }
@@ -242,24 +242,24 @@ impl<'a> HtmlNode<'a> {
         unsafe {
             let b = Box::new(f);
             let a = &*b as *const _;
-            js! { (self.id, s, a as *const libc::c_void,
+            js_guarded! { (self.id, s, a as *const libc::c_void,
                 rust_caller::<F> as *const libc::c_void,
                 self.doc as *const libc::c_void)
-                b"\
+                "\
                 WEBPLATFORM.rs_refs[$0].addEventListener(UTF8ToString($1), function (e) {\
                     Runtime.dynCall('viii', $3, [$2, $4, e.target ? WEBPLATFORM.rs_refs.push(e.target) - 1 : -1]);\
                 }, true);\
-            \0" };
+            " };
             (&*self.doc).push_ref(b);
 //            (&*self.doc).refs.borrow_mut().push(b);
         }
     }
 
     pub fn remove_self(&self) {
-        js! { (self.id) b"\
+        js_guarded! { (self.id) "\
             var s = WEBPLATFORM.rs_refs[$0];\
             s.parentNode.removeChild(s);\
-        \0" };
+        " };
     }
 }
 
