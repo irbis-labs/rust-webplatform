@@ -19,27 +19,63 @@ mod webplatform {
     pub use emscripten_asm_const_int;
 }
 
+#[repr(C)]
+struct ArenaEntryArray {
+    start: libc::c_int,
+    length: libc::c_int,
+}
+
+struct Arena<'a> {
+    cstring: Vec<CString>,
+    u8array: Vec<&'a [u8]>,
+    u8array_parts: Vec<ArenaEntryArray>,
+}
+
+impl<'a> Arena<'a> {
+    fn new() -> Self { Arena {
+        cstring: Vec::new(),
+        u8array: Vec::new(),
+        u8array_parts: Vec::new()
+        } }
+}
+
 trait Interop {
-    fn as_int(self, _:&mut Vec<CString>) -> libc::c_int;
+    fn as_int(self, _:&mut Arena) -> libc::c_int;
 }
 
 impl Interop for i32 {
-    fn as_int(self, _:&mut Vec<CString>) -> libc::c_int {
+    fn as_int(self, _:&mut Arena) -> libc::c_int {
         return self;
     }
 }
 
 impl<'a> Interop for &'a str {
-    fn as_int(self, arena:&mut Vec<CString>) -> libc::c_int {
+    fn as_int(self, arena:&mut Arena) -> libc::c_int {
         let c = CString::new(self).unwrap();
         let ret = c.as_ptr() as libc::c_int;
-        arena.push(c);
+        arena.cstring.push(c);
         return ret;
     }
 }
 
+impl<'a> Interop for &'a [u8] {
+    fn as_int(self, arena:&mut Arena) -> libc::c_int {
+        let parts = ArenaEntryArray { start: self.as_ptr() as libc::c_int, length: self.len() as libc::c_int };
+        let partsptr: *const ArenaEntryArray = &parts;
+
+        arena.u8array_parts.push(parts);
+        // BIG FIXME: This is trusting that there is another reference to self
+        // around somewhere that outlives the arena. What else could we do --
+        // require arguments to be owned? To be boxed/RC'd? Use another arena
+        // mechanism that doesn't require storing in a vec?
+//         arena.u8array.push(&self);
+
+        partsptr as libc::c_int
+    }
+}
+
 impl<'a> Interop for *const libc::c_void {
-    fn as_int(self, _:&mut Vec<CString>) -> libc::c_int {
+    fn as_int(self, _:&mut Arena) -> libc::c_int {
         return self as libc::c_int;
     }
 }
@@ -48,7 +84,7 @@ impl<'a> Interop for *const libc::c_void {
 macro_rules! js {
     ( ($( $x:expr ),*) $y:expr ) => {
         {
-            let mut arena:Vec<CString> = Vec::new();
+            let mut arena = Arena::new();
             const LOCAL: &'static [u8] = $y;
             unsafe { ::webplatform::emscripten_asm_const_int(&LOCAL[0] as *const _ as *const libc::c_char, $(Interop::as_int($x, &mut arena)),*) }
         }
@@ -67,6 +103,11 @@ extern "C" {
     pub fn emscripten_asm_const_int(s: *const libc::c_char, ...) -> libc::c_int;
     pub fn emscripten_pause_main_loop();
     pub fn emscripten_set_main_loop(m: extern fn(), fps: libc::c_int, infinite: libc::c_int);
+}
+
+pub struct WebSocket<'a> {
+    id: libc::c_int,
+    doc: *const Document<'a>,
 }
 
 pub struct HtmlNode<'a> {
@@ -139,6 +180,30 @@ extern fn rust_caller<F: FnMut(Event)>(a: *const libc::c_void, docptr: *const li
         }
         // target: None,
     });
+}
+
+/* The _v notation introduced here is a generalization based on the
+ * "viii-style" notation of dynCall. Before this is introduced, there's only
+ * refs and rust_caller; both operate on FnMut(Event). The _v versions operate
+ * on FnMut(), and it is expected that there'll be a _v_u8array version
+ * (parting with the original coonventio pretty soon as it turned out not to
+ * fit) next. */
+
+extern fn rust_caller_v<F: FnMut()>(a: *const libc::c_void) {
+    let v:&mut F = unsafe { mem::transmute(a) };
+    v();
+}
+
+extern fn rust_caller_v_string<F: FnMut(String)>(a: *const libc::c_void, b: *const libc::c_char) {
+    let v:&mut F = unsafe { mem::transmute(a) };
+    let b = unsafe { str::from_utf8(CStr::from_ptr(b).to_bytes()).unwrap().to_owned() };
+    v(b);
+}
+
+extern fn rust_caller_v_u8array<F: FnMut(&[u8])>(a: *const libc::c_void, start: *const libc::c_void, length: libc::c_int) {
+    let v:&mut F = unsafe { mem::transmute(a) };
+    let b:&[u8] = unsafe { std::slice::from_raw_parts(start as *const u8, length as usize) };
+    v(b);
 }
 
 impl<'a> HtmlNode<'a> {
@@ -348,9 +413,109 @@ pub fn alert(s: &str) {
 
 pub struct Document<'a> {
     refs: Rc<RefCell<Vec<Box<FnMut(Event<'a>) + 'a>>>>,
+    refs_v: Rc<RefCell<Vec<Box<FnMut() + 'a>>>>,
+    refs_v_u8array: Rc<RefCell<Vec<Box<FnMut(&[u8]) + 'a>>>>,
+    refs_v_string: Rc<RefCell<Vec<Box<FnMut(String) + 'a>>>>,
+}
+
+impl<'a> WebSocket<'a> {
+    /* can and should we make this FnOnce? we'd need to remove the listener,
+     * and should only do that if js guarantees this only gets called once, or
+     * otherwise there might be uses of calling this more than once */
+    pub fn addEventListener_open<F: FnMut() + 'a>(&self, f: F) {
+        unsafe {
+            let b = Box::new(f);
+            let a = &*b as *const _;
+            js! { (self.id, a as *const libc::c_void,
+                rust_caller_v::<F> as *const libc::c_void)
+                b"\
+                WEBPLATFORM.rs_refs[$0].addEventListener('open', function (e) {\
+                    Runtime.dynCall('vi', $2, [$1]);\
+                }, false);\
+            \0" };
+            (&*self.doc).refs_v.borrow_mut().push(b);
+        }
+    }
+
+    pub fn addEventListener_message_string<F: FnMut(String) + 'a>(&self, f: F) {
+        unsafe {
+            let b = Box::new(f);
+            let a = &*b as *const _;
+            js! { (self.id, a as *const libc::c_void,
+                rust_caller_v_string::<F> as *const libc::c_void)
+                b"\
+                WEBPLATFORM.rs_refs[$0].addEventListener('message', function (e) {\
+                    if (typeof e.data != 'string') return;\
+                    Runtime.dynCall('vii', $2, [$1, allocate(intArrayFromString(e.data), 'i8', ALLOC_STACK)]);\
+                }, false);\
+            \0" };
+            (&*self.doc).refs_v_string.borrow_mut().push(b);
+        }
+    }
+
+    pub fn addEventListener_message_binary<F: FnMut(&[u8]) + 'a>(&self, f: F) {
+        unsafe {
+            let b = Box::new(f);
+            let a = &*b as *const _;
+            // BIG FIXME this leaks memory, and i don't want to malloc there in the first place but just pass a pointer to the buffer
+            js! { (self.id, a as *const libc::c_void,
+                rust_caller_v_u8array::<F> as *const libc::c_void)
+                b"\
+                WEBPLATFORM.rs_refs[$0].addEventListener('message', function (e) {\
+                    if (typeof e.data != 'object') return;\
+                    var buf = Module._malloc(e.data.byteLength);\
+                    Module.writeArrayToMemory(new Int8Array(e.data), buf);\
+                    Runtime.dynCall('viii', $2, [$1, buf, e.data.byteLength]);\
+                }, false);\
+            \0" };
+            (&*self.doc).refs_v_u8array.borrow_mut().push(b);
+        }
+    }
+
+    pub fn send(&self, data: &str) {
+        js! { (self.id, data) b"\
+            WEBPLATFORM.rs_refs[$0].send(UTF8ToString($1));\
+        \0" };
+    }
+
+    pub fn send_binary(&self, data: &[u8]) {
+        /* FIXME first three lines should go into a U8ToSlice function like UTF8ToString */
+        js! { (self.id, data) b"\
+            var start = HEAPU32[$1 / 4];\
+            var length = HEAPU32[$1 / 4 + 1];\
+            var sliced = HEAP8.slice(start, start + length * 1);\
+            WEBPLATFORM.rs_refs[$0].send(sliced);\
+        \0" };
+    }
+
+    pub fn close(&self, data: &str) {
+        js! { (self.id, data) b"\
+            WEBPLATFORM.rs_refs[$0].close();\
+        \0" };
+    }
 }
 
 impl<'a> Document<'a> {
+    pub fn websocket_create<'b>(&'b self, url: &str) -> Option<WebSocket<'a>> {
+        let id = js! { (url) b"\
+            var value = new WebSocket(UTF8ToString($0));\
+            if (!value) {\
+                return -1;\
+            }\
+            value.binaryType = 'arraybuffer';\
+            return WEBPLATFORM.rs_refs.push(value) - 1;\
+        \0" };
+
+        if id < 0 {
+            None
+        } else {
+            Some(WebSocket {
+                id: id,
+                doc: &*self,
+            })
+        }
+    }
+
     pub fn element_create<'b>(&'b self, s: &str) -> Option<HtmlNode<'a>> {
         let id = js! { (s) b"\
             var value = document.createElement(UTF8ToString($0));\
@@ -505,6 +670,9 @@ pub fn init<'a>() -> Document<'a> {
     \0" };
     Document {
         refs: Rc::new(RefCell::new(Vec::new())),
+        refs_v: Rc::new(RefCell::new(Vec::new())),
+        refs_v_u8array: Rc::new(RefCell::new(Vec::new())),
+        refs_v_string: Rc::new(RefCell::new(Vec::new())),
     }
 }
 
