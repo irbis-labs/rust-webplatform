@@ -1,4 +1,11 @@
-use internal_prelude::*;
+use std::cell::RefCell;
+use std::ffi::CStr;
+use std::rc::Rc;
+use std::str;
+use libc;
+use ::api::*;
+use ::event::*;
+use ::html_node::*;
 
 
 pub fn init<'a>() -> Document<'a> {

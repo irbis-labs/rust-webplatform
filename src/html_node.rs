@@ -1,6 +1,14 @@
 use std::collections::HashSet;
 
-use internal_prelude::*;
+use std::char;
+use std::clone::Clone;
+use std::ffi::CStr;
+use std::fmt;
+use std::ops::Deref;
+use std::str;
+use libc;
+use ::api::*;
+use ::event::*;
 
 
 pub struct JSRef<'a> {

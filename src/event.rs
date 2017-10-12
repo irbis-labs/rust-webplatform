@@ -1,4 +1,9 @@
-use internal_prelude::*;
+use std::ffi::CStr;
+use std::mem;
+use std::slice;
+use std::str;
+use libc;
+use ::html_node::*;
 
 
 pub(crate) extern fn rust_caller<F: FnMut(Event)>(a: *const libc::c_void, docptr: *const libc::c_void, id: i32) {

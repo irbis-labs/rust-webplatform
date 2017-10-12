@@ -16,25 +16,6 @@ pub use event::*;
 pub use html_node::*;
 
 
-pub(crate) mod internal_prelude {
-    pub(crate) use std::cell::RefCell;
-    pub(crate) use std::char;
-    pub(crate) use std::clone::Clone;
-    pub(crate) use std::ffi::{CString, CStr};
-    pub(crate) use std::fmt;
-    pub(crate) use std::mem;
-    pub(crate) use std::ops::Deref;
-    pub(crate) use std::rc::Rc;
-    pub(crate) use std::slice;
-    pub(crate) use std::str;
-
-    pub(crate) use libc;
-
-    pub(crate) use api::*;
-    pub(crate) use event::*;
-    pub(crate) use html_node::*;
-}
-
 extern "C" {
     pub fn emscripten_asm_con(s: *const libc::c_char);
     pub fn emscripten_asm_const(s: *const libc::c_char);
