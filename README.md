@@ -1,5 +1,7 @@
 # rust-webplatform
 
+[![Travis Build Status][travis-build-status-svg]][travis-build-status]
+
 A Rust library for use with emscripten to access the DOM and API.
 
 [Read the documentation](https://docs.rs/crate/webplatform), read [brson's post on how
@@ -28,7 +30,7 @@ Used with `cargo build --target=asmjs-unknown-emscripten` or `cargo build --targ
 
 ### v 0.5. Establish a development process
 
-* [ ] CI
+* [x] CI
 * [ ] Tests
 * [ ] Split Document and Window
 * [ ] Extract event manager
@@ -66,3 +68,6 @@ at your option.
 Unless you explicitly state otherwise, any contribution intentionally submitted
 for inclusion in the work by you, as defined in the Apache-2.0 license,
 shall be dual licensed as above, without any additional terms or conditions.
+
+[travis-build-status]: https://travis-ci.org/irbis-labs/rust-webplatform?branch=master
+[travis-build-status-svg]: https://travis-ci.org/irbis-labs/rust-webplatform.svg?branch=master
